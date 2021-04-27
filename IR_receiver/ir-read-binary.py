@@ -29,12 +29,12 @@ def setLed(value):
 def getBinary():
 	#Internal vars
 	num1s = 0 #Number of consecutive 1s read
-	binary = 1 #The bianry value
+	binary = 0 #The bianry value
 	command = [] #The list to store pulse times in
 	previousValue = 0 #The last value
 	value = GPIO.input(pin) #The current value
 	setLed(value)
-	print('Initial sensor value: {0}.'.format(value))
+#	print('Initial sensor value: {0}.'.format(value))
 	#Waits for the sensor to pull pin low
 	while value:
 		value = GPIO.input(pin)
@@ -42,7 +42,7 @@ def getBinary():
 
 	#Records start time
 	startTime = datetime.now()
-	print("Starttime: {0} - sensor now should be 0 (start pulse) it is {1}".format(startTime, value))
+#	print("Starttime: {0} - sensor now should be 0 (start pulse) it is {1}".format(startTime, value))
 	while True:
 		#If change detected in value
 		if previousValue != value:
@@ -61,7 +61,7 @@ def getBinary():
 		#Breaks program when the amount of 1s surpasses 10000
 		if num1s > 10000:
 			now = datetime.now()
-			print("Time    : {0} - breaking after {1} consecutive ones - elapsed time {2}.".format(now, num1s, now-startTime))
+#			print("Time    : {0} - breaking after {1} consecutive ones - elapsed time {2}.".format(now, num1s, now-startTime))
 			break
 
 		#Re-reads pin
@@ -70,36 +70,51 @@ def getBinary():
 		setLed(value)
 
 	#Converts times to binary
-	print("Command array which has {0} elements:".format(len(command)))
-	print command
-	cnt = 0
-	for (typ, tme) in command:
-		if typ == 0:
-			cnt += 1
-	print("Command array has {0} ZERO (mark) elements".format(cnt))
-	cnt = 0
-	binzero=0
-	binone=0
-	for (typ, tme) in command:
-		if typ == 1:
-			cnt += 1
-			print("Data bit with tmp = {0}".format(tme))
-			if tme > 1000:
-				binone += 1
-			else:
-				binzero +=1
-	print("Command array has {0} ONE (space) elements out of which {1} are binary 0 and {2} are binary 1".format(cnt, binzero, binone))
+#	print("Command array which has {0} elements:".format(len(command)))
+#	print command
+#	cnt = 0
+#	for (typ, tme) in command:
+#		if typ == 0:
+#			cnt += 1
+#	print("Command array has {0} ZERO (mark) elements".format(cnt))
+#	cnt = 0
+#	binzero=0
+#	binone=0
+#	for (typ, tme) in command:
+#		if typ == 1:
+#			cnt += 1
+#			print("Space element with duration of {0} microseconds".format(tme))
+#			if tme > 1000:
+#				binone += 1
+#			else:
+#				binzero +=1
+#	print("Command array has {0} ONE (space) elements out of which {1} are binary 0 and {2} are binary 1".format(cnt, binzero, binone))
 
-	print("Converting pulses to binary number...")
+#	print("Converting pulses to binary number...")
+#	cnt = 0
+#	res = 0
 	for (typ, tme) in command:
 		if typ == 1: #If looking at rest period
 			if tme > 1600: 
-				print("Ignoring leadin space with duration", tme)
+				# print("Ignoring leadin space with duration", tme)
+				binary
 			elif tme > 1000: #If pulse greater than 1000us
-				binary = binary *10 +1 #Must be 1
+#				print(" - Bit {0:2d} - 1".format(cnt))
+				binary = binary *10 + 1 #Must be 1
+#				res = (res<<1) + 1
+#				cnt += 1 # increment bit counter
 			else:
+#				print(" - Bit {0:2d} - 0".format(cnt))
 				binary *= 10 #Must be 0
-	print("Result = ", binary)
+#				res = res<<1
+#				cnt += 1 # increment bit counter
+#			if cnt %  4 == 0:
+#				print(" - result = {0:b}".format(res))
+
+#	print("Binary result = {0:048d}".format(binary))
+#	print("Result in hex = {0:x}".format(res))
+#	print("Result in bin = {0:b}".format(res))
+
 #	if len(str(binary)) > 34: #Sometimes, there is some stray characters
 #		binary = int(str(binary)[:34])
 
