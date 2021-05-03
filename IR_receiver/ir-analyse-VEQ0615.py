@@ -1,11 +1,12 @@
 #-----------------------------------------#
-#Name - ir-analysed.py
-#Description - The finalised code to read data from an IR sensor and then refernce it with stored values
-#Author - Werner Schollenberger
-#Reference  - Code from Lime Parallelogram
-#             https://github.com/Lime-Parallelogram/IR-Code-Referencer
-#Licence - Compleatly Free
-#Date - 2021-05-02
+# Name - ir-analyse-VEQ0615.py
+# Description - Code to read data from an IR sensor, analyse it and decode raw message values
+#               Version for Panasonic VCR VEQ0613
+# Author - Werner Schollenberger
+# Reference  - Code from Lime Parallelogram
+#              https://github.com/Lime-Parallelogram/IR-Code-Referencer
+# Licence - Completely Free
+# Date - 2021-05-03
 #------------------------------------------------------------#
 
 #Import modules
@@ -17,12 +18,15 @@ from datetime import datetime
 pin = 18 #Input pin of sensor (GPIO.BOARD)
 ledpin = 11
 
+# Flag to print out debug message
+## f_debug = False
+f_debug = True
+
 # Space encoding parameters
 t_header_mark = 3000	# This the first mark that determines message begin
 t_header_space = 3000   # space that follows after the header mark
-#num-read_gap = 10000
+##num_read_gap = 10000
 num_read_gap = 8000	# number of subsequent spaces to signla EOM - for Panasonic VEG0615
-
 
 # Note:
 #  if t_space_one < t_space_zero : the value has to be less than t_space_one for a logical one
@@ -31,6 +35,9 @@ num_read_gap = 8000	# number of subsequent spaces to signla EOM - for Panasonic 
 #                                  and less than t_space_zero for a logical zero.
 t_space_one = 1000
 t_space_zero = 2500
+
+# Whether the last bit should be deleted or not
+f_delTrailBit = False
 
 #Sets up GPIO
 GPIO.setmode(GPIO.BOARD)
@@ -85,7 +92,8 @@ def getBinary():
 		#Breaks program when the amount of 1s surpasses 10000
 		if num1s > num_read_gap:
 			now = datetime.now()
-##			print("Time     : {0} - breaking after {1} consecutive ones - elapsed time {2}.".format(now, num1s, now-startTime))
+			if f_debug:
+				print("Time     : {0} - breaking after {1} consecutive ones - elapsed time {2}.".format(now, num1s, now-startTime))
 			break
 
 		#Re-reads pin
@@ -94,7 +102,7 @@ def getBinary():
 		setLed(value)
 
 	# Analyze pulse pattern
-	if False:
+	if f_debug:
 		print("Command array which has {0} elements:".format(len(command)))
 		print command
 
@@ -107,7 +115,7 @@ def getBinary():
 				cnt_space += 1
 ##	print("Command array has {0} ZERO (mark) elements and {1} SPACE elements".format(cnt_mark, cnt_space))
 
-	if False:
+	if f_debug:
 		print
 		cnt = 0
 		print "Mark durations:  ",
@@ -132,7 +140,8 @@ def getBinary():
 	for (typ, tme, rcnt) in command:
 		if typ == 1: # space, this is the importand piece
 			if tme > t_header_space:
-##				print("Ignoring space at position {0} with duration {1}".format(cnt, tme))
+				if f_debug:
+					print("Ignoring space at position {0} with duration {1}".format(cnt, tme))
 				if cnt > 2:
 					print("** Message read error - header space at position {} **".format(cnt))
 					binary = 0
@@ -157,20 +166,25 @@ def getBinary():
 			else:
 				print("** Internal error in determining logical value from space duration **")
 				break
-
-##			print(" - Bit {0:2d} - {1}".format(cnt, bit_read))
+			if f_debug:
+				print(" - Bit {0:2d} - {1}".format(cnt, bit_read))
 			binary = binary *10 + bit_read
 			res = (res<<1) + bit_read
 			cnt += 1 # increment bit counter
-
-##			if cnt %  4 == 0:
-##				print(" - result = {0:b}".format(res))
+			if f_debug:
+				if cnt %  4 == 0:
+					print(" - result = {0:b}".format(res))
 		else:  # mark
 			if tme > t_header_mark:
 				print "Message Header mark detected."
-	print("Binary result = {0:048d}".format(binary))
-	print("Result in hex = {0:012x}".format(res))
-	print("Result in bin = {0:048b}".format(res))
+	if f_delTrailBit:
+		print "Removing last bit"
+		binary = int(binary / 10)
+		res = res>>1
+
+	print("Binary result = {0:064d}".format(binary))
+	print("Result in hex = {0:016x}".format(res))
+	print("Result in bin = {0:064b}".format(res))
 
 #	if len(str(binary)) > 34: #Sometimes, there is some stray characters
 #		binary = int(str(binary)[:34])
