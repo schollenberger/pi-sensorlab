@@ -1,4 +1,4 @@
-# IR Receier project
+# IR Receiver project
 
   Using the IR Receiver sensor 38 kHz, B22, enables the Raspberry Pi to receive
   and interpret standard IR remote control signals.
@@ -11,7 +11,8 @@
     LIRC - Linux Infrared Remote Control
     official Web site: https://www.lirc.org
     SourceForge: https://sourceforge.net/projects/lirc/
-    Remote control database for LIRC as well asWinLIRC: http://lirc.sourceforge.net/remotes/
+    Remote control database for LIRC as well as WinLIRC:
+    http://lirc.sourceforge.net/remotes/
 
 
 ## Technical Background
@@ -26,8 +27,8 @@
   from background light and noise. Therefore different IR protocols may require
   different receivers.
 
-  The IR receiver output used in this lab (something like TSOP22) is filtering
-  on 38 kHz and the output is active low.  
+  The IR receiver output used in this lab (something like TSOP4838 DIP -3) is
+  filtering on 38 kHz and the output is active low.  
   Datasheet: https://www.vishay.com/docs/82459/tsop48.pdf
 
   The IR protocols describe the representation of a logical '0' and a logical
@@ -37,10 +38,9 @@
   has a start delimiter represented by a unique pulse/space pattern.
 
   Protocols like the NEC protocol use pulse burst of a constant duration
-  (except for the start delimiter).
-  The duration of the burst may vary between the protocols.
-  The duration of the space following the pulse distinguish between a logical '0'
-  and a logical '1' (pulse-place modulation).
+  (except for the start delimiter). The duration of the burst may vary between
+  the protocols. The duration of the space following the pulse distinguish
+  between a logical '0' and a logical '1' (pulse-place modulation).
 
   In contrast to that is the Soni SIRC protocol which uses pulse width
   modulation.
@@ -96,7 +96,7 @@
     ```
     name  DVD
     bits           17
-    flags SPACE_ENC
+    flags         SPACE_ENC
     eps            20
     aeps          200
 
@@ -112,13 +112,15 @@
 
     frequency    36000
     ```
-  That means the protocol encodes the bits via the space duration, the standard
-  pulse width is 400µs, a space of 400µs represents a logical zero and a space
-  of 1200µs represents a logical one.
+  This description means that the protocol encodes the bits via the space
+  durations, the standard pulse width is 400µs, a space of 400µs represents a
+  logical zero and a space of 1200µs represents a logical one.
   Header is a 4ms pulse and 1.6ms space.
-
   The message is 48 bit long, with a 31bit header with value `0x20020680` and
   17 command bits for which the command table is presented in the list.
+
+  This matches what has been measured on a real Panasonic DVD remote control
+  with the difference of the pre-data value.
 
   Another link shows some TV Codes that matched my remote control:
     https://tasmota.github.io/docs/Codes-for-IR-Remotes/
@@ -147,14 +149,86 @@
 
 ## Installation
 
-  ## installation of LIRC
+  The LIRC package supports to decoding and sending  IR signals of many
+  remote controls. It contains two kernel modules (gpio-ir and gpio-ir-txt)
+  that have to be loaded before LIRC can be used.
+  LIRC has been better integrated with the RasPiOS in the last time.
+  What you do is to uncomment the kernel modules in `/boot/config.txt`
+  and adapt the gpio pin parameters (see below).
 
+  Note, the install steps in  https://tutorials-raspberrypi.de/raspberry-pi-fernbedienung-infrarot-steuerung-lirc/ are outdated.
+
+  This is what I did to be successful:
+    - Install the code:
+      ```
+      $ sudo apt-get install lirc
+      ```
+    - Note: You don't update the file `/etc/modules` anymore!
+      Note: the file `/etc/lirc/hardware.conf` is outdated as well!
+    - Add lirc to the boot config. Edit file `/boot/config.txt`.
+      You may search for the following lines uncomment them and update
+      the gpio pins.
+      ```
+      dtoverlay=gpio-ir,gpio_pin=18
+      dtoverlay=gpio-ir-tx,gpio_pin=17
+      ```
+    - reboot
+    - Login again and check that the lirc devices exist:
+      ```
+      $ ls -al /dev/lirc*
+      ```
+      You should find a device like this:
+      `crw-rw---- 1 root video 251, 0 May  1 18:34 /dev/lirc0`
+    - Check the the boot log:
+      ```
+      $ sudo grep -B 3 -A 5 -i "fail" /var/log/boot.log
+      ```
+      Be sure you don't see old failure messages.
+      Check the modules load service:
+      ```
+      $ systemctl status systemd-modules-load.service
+      ```
+    - Check the services:
+      ```
+      $ service lircd status   # basic device driver
+      $ service lircmd status  # LIRC mouse daemon
+          # Converts IR remotes button presses to mouse movements and clicks
+      ```
+    - Checkout the lirc man page:
+        `$ man lirc`
+    - Check the lirc driver config:
+       `$ less /etc/lirc/lirc_options.conf`
+    - Configure mouse driver `lircmd`
+      See: https://www.lirc.org/html/configure.html
+    - Test that lirc is receiving something:
+        - execute: `sudo mode2 --driver default --device /dev/lirc0`
+          It should show you a sequence of `pulse ...`, `space ...`
+          lines.
+        - execut `irw`
+          If you have configured the remote correctly, it should show something
+          ## tbd ##
 
 ## Code
 
   - ir-read-binary.py
-    Derived from low level tutorial: https://github.com/Lime-Parallelogram/IR-Code-Referencer
+    Derived from low level tutorial:
+    https://github.com/Lime-Parallelogram/IR-Code-Referencer
 
     Raw read via GPIO module.
     Assumes a go-zero protocol, with longer start pulse.
     Outputs result in hex (no trimming)
+    Extended logging in the code reveiled the burst and space durations on
+    a Panasonic DVD / TV remote control.
+    Code has been modified to properly decode the Panasonic remote control
+    messages.
+
+  - Use LIRC to query IR codes via the command `irrecord`
+     e.g.:
+       ```
+       irrecord --list-namespace
+       irrecord -d /dev/lirc0
+       # you wil be prompted for the filename
+       ```
+  - LIRC command `irexec`:
+       Requires config file. Local one is under `.lircrc`.
+       You can copy a template from `/etc/lirc/irexec.lircrc`
