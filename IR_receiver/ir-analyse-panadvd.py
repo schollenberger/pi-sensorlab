@@ -15,8 +15,8 @@ import RPi.GPIO as GPIO
 from datetime import datetime
 
 #Static program vars
-pin = 18 #Input pin of sensor (GPIO.BOARD)
-ledpin = 11
+pin = 11 #Input pin of sensor (GPIO.BOARD)
+ledpin = 12
 
 # Flag to print out debug message
 f_debug = False
