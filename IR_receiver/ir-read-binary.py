@@ -15,8 +15,8 @@ import RPi.GPIO as GPIO
 from datetime import datetime
 
 #Static program vars
-pin = 11 #Input pin (GPIO 17) of sensor (GPIO.BOARD)
-ledpin = 12 # GPIO 18
+pin = 11     # GPIO 17 Input - IR sensor out (GPIO.BOARD)
+ledpin = 13  # GPIO 27 Output - LED Green (GPIO.BOARD)
 #Buttons = [0x300ff9867L, 0x300ffd827L, 0x300ff8877L, 0x300ffa857L, 0x300ffe817L, 0x300ff48b7L, 0x300ff6897L, 0x300ff02fdL, 0x300ff32cdL, 0x300ff20dfL] #HEX code list
 #ButtonsNames = ["RED",   "GREEN",      "BLUE",       "WHITE",      "DARK ORANGE","LIGHT GREEN","DARK BLUE",  "VIBRANT ORANGE","LIGHT BLUE","DARK PURPLE"] #String list in same order as HEX list
 

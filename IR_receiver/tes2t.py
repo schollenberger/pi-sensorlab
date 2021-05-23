@@ -26,14 +26,14 @@ def getBinary():
 	command = [] #The list to store pulse times in
 	previousValue = 0 #The last value
 	value = GPIO.input(pin) #The current value
-	
+
 	#Waits for the sensor to pull pin low
 	while value:
 		value = GPIO.input(pin)
-		
+
 	#Records start time
 	startTime = datetime.now()
-	
+
 	while True:
 		#If change detected in value
 		if previousValue != value:
@@ -41,21 +41,21 @@ def getBinary():
 			pulseTime = now - startTime #Calculate the time of pulse
 			startTime = now #Reset start time
 			command.append((previousValue, pulseTime.microseconds)) #Store recorded data
-			
+
 		#Updates consecutive 1s variable
 		if value:
 			num1s += 1
 		else:
 			num1s = 0
-		
+
 		#Breaks program when the amount of 1s surpasses 10000
 		if num1s > 10000:
 			break
-			
+
 		#Re-reads pin
 		previousValue = value
 		value = GPIO.input(pin)
-		
+
 	#Converts times to binary
 	for (typ, tme) in command:
 		if typ == 1: #If looking at rest period
@@ -63,20 +63,20 @@ def getBinary():
 				binary = binary *10 +1 #Must be 1
 			else:
 				binary *= 10 #Must be 0
-			
+
 	if len(str(binary)) > 34: #Sometimes, there is some stray characters
 		binary = int(str(binary)[:34])
-		
+
 	return binary
-	
+
 #Conver value to hex
 def convertHex(binaryValue):
 	tmpB2 = int(str(binaryValue),2) #Tempary propper base 2
 	return hex(tmpB2)
-	
+
 while True:
 	inData = convertHex(getBinary()) #Runs subs to get incomming hex value
 	for button in range(len(Buttons)):#Runs through every value in list
 		if hex(Buttons[button]) == inData: #Checks this against incomming
 			print(ButtonsNames[button]) #Prints corresponding english name for button
-			
+
