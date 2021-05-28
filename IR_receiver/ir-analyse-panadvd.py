@@ -1,13 +1,15 @@
+#!/usr/bin/python
 #-----------------------------------------#
 # Name - ir-analyse-panadvd.py
 # Description - Code to read data from an IR sensor, analyse it and decode raw message values
-#               Version for Panasonic DVD remote
+#               Version for Panasonic DVD remote N2QAYB000124
 # Author - Werner Schollenberger
 # Reference  - Code from Lime Parallelogram
 #              https://github.com/Lime-Parallelogram/IR-Code-Referencer
 # Licence - Completely Free
-# Date - 2021-05-03
+# Date - 2021-05-28
 #------------------------------------------------------------#
+# Runs under both python interpreters python2.7 and python3
 
 #Import modules
 import time
@@ -20,13 +22,12 @@ ledpin = 13  # GPIO 27 Output - LED Green (GPIO.BOARD)
 
 # Flag to print out debug message
 f_debug = False
-## f_debug = True
+##f_debug = True
 
-# Space encoding parameters
+# Space encoding parameters - for Panasonic N2QAYB000124
 t_header_mark = 3000	# This the first mark that determines message begin
 t_header_space = 1700   # space that follows after the header mark
-num_read_gap = 10000
-##num_read_gap = 8000	# number of subsequent spaces to signla EOM - for Panasonic VEG0615
+num_read_gap = 10000    # number of subsequent spaces to signal EOM
 
 # Note:
 #  if t_space_one < t_space_zero : the value has to be less than t_space_one for a logical one
@@ -104,7 +105,7 @@ def getBinary():
 	# Analyze pulse pattern
 	if f_debug:
 		print("Command array which has {0} elements:".format(len(command)))
-		print command
+		print(command)
 
 		cnt_mark = 0
 		cnt_space = 0
@@ -118,19 +119,19 @@ def getBinary():
 	if f_debug:
 		print
 		cnt = 0
-		print "Mark durations:  ",
+		print("Mark durations:  ",)
 		for (typ, tme, rcnt) in command:
 			if typ == 0:
-				print "%5d" % tme,
-		print
-		print "-----"
+				print("%5d" % tme,)
+		print()
+		print ("-----")
 
-		print "Space durations: ",
+		print ("Space durations: ",)
 		for (typ, tme, rcnt) in command:
 			if typ == 1:
-				print "%5d" % tme,
-		print
-		print "-----"
+				print("%5d" % tme,)
+		print()
+		print("-----")
 
 
 	print("Converting pulses to binary number...")
@@ -176,9 +177,9 @@ def getBinary():
 					print(" - result = {0:b}".format(res))
 		else:  # mark
 			if tme > t_header_mark:
-				print "Message Header mark detected."
+				print("Message Header mark detected.")
 	if f_delTrailBit:
-		print "Removing last bit"
+		print("Removing last bit")
 		binary = int(binary / 10)
 		res = res>>1
 
@@ -204,6 +205,6 @@ try:
 #	        time.sleep(0.5)
 except KeyboardInterrupt:
 	pass
-	print "*** KeyboardInterrupt caught ***"
+	print("*** KeyboardInterrupt caught ***")
 	GPIO.output(ledpin, GPIO.LOW)
 	GPIO.cleanup()

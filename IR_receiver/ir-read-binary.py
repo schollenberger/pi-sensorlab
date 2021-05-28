@@ -1,7 +1,8 @@
+#!/usr/bin/python2
 #-----------------------------------------#
 # Name - ir-read-binary.py
 # Description - This code is outdated and basically replace by the ir-analyse...py programs.
-#               Originally it has been designet to read the raw message values of an  IR remote
+#               Originally it has been designed to read the raw message values of an  IR remote
 #		but it turned out that the analysis is very device specific.
 # Author - Werner Schollenberger / Lime Parallelogram
 # Reference  - Code from Lime Parallelogram
@@ -9,6 +10,8 @@
 # Licence - Compleatly Free
 # Date - 04/05/2021
 #------------------------------------------------------------#
+# It doesn't run under python3
+
 #Imports modules
 import time
 import RPi.GPIO as GPIO
