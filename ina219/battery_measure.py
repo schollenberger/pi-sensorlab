@@ -1,3 +1,9 @@
+#!/usr/bin/python
+#
+# battery_measure.py
+#
+# controls battery discharge via relais 
+#
 from ina219 import INA219, DeviceRangeError
 import RPi.GPIO as GPIO
 from time import sleep
@@ -33,22 +39,27 @@ def turn_off():
 
 
 try:
-    while 1:
+#    while 1:
         read_ina219()
-        sleep(5)
+        sleep(2)
+        read_ina219()
+        sleep(2)
         turn_on()
+        sleep(1)
         read_ina219()
-        sleep(5)
+        sleep(2)
         read_ina219()
-        sleep(5)
+        sleep(2)
+        read_ina219()
+        sleep(2)
+        read_ina219()
+        sleep(2)
         turn_off()
-        read_ina219()
-        sleep(5)
-        read_ina219()
-        sleep(5)
-
+        sleep(1)
 
 except KeyboardInterrupt:
     pass
+    turn_off()
+    GPIO.cleanup()
     print
     print("That's all folks ...")
