@@ -11,14 +11,14 @@ from time import sleep
 
 SHUNT_OHM = 0.1
 MAX_STROMSTAERKE = 0.4
-RELAY_IO = 17
-UMIN = 1.05  # Volts discharge low voltage
-#UMIN = 1.09  # Volts discharge low voltage for test purposes
+#UMIN = 1.05  # Volts discharge low voltage
+UMIN = 1.10  # Volts discharge low voltage for test purposes
 DISCHARGE_INTERVAL = 5  #seconds
 
 ina = INA219(SHUNT_OHM, MAX_STROMSTAERKE)
 ina.configure(ina.RANGE_16V, ina.GAIN_1_40MV)
 
+RELAY_IO = 17
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(RELAY_IO,  GPIO.OUT)
 
@@ -26,7 +26,7 @@ lcd = Adafruit_CharLCD(rs=21, en=20, d4=16, d5=12, d6=7, d7=8,
                        cols=16, lines=2)
 lcd.clear()
 
-def print_display(txt)():
+def print_display(txt):
     lcd.clear()
     lcd.message(txt)
 
@@ -39,7 +39,7 @@ def read_ina219():
         Iina = ina.current()
         Pina = ina.power()
         print('Ubat/I/P: {0:0.4f} V  / {1:0.4f} mA / {2:0.4f} mW - calculated P {3:0.4f} mW'.format(Uges,Iina,Pina,Iina*Uges))
-        print_display('{0:4.2f} V  {1:8.2f} mA\n {2:8.2f} mW'.format(Uges,Iina,Iina*Uges)))
+        print_display('{0:0.2f}V  {1:0.2f}mA\n{2:0.2f}mW'.format(Uges,Iina,Iina*Uges))
         # print('Pges   : {0:0.2f} mW'.format(Pina))
         # print('UShunt : {0:0.2f} mV'.format(Ushunt))
         print
@@ -63,7 +63,7 @@ def print_status(tim, discharge, power):
 
 def print_final(tim, discharge, power):
     print('Dauer: {0} min - Entladung: {1:0.4} mAh  Energie: {2:0.4f} mWh'.format(tim/60, discharge, power))
-
+    print_display('Finished after {0} s\n{1:0.2f} mAh {2:0.2f}mWh'.format(tim/60, discharge, power))
 
 try:
     TotalDischarge = 0.0
@@ -92,11 +92,14 @@ try:
         Uactual,dummy,dummy = read_ina219()
         print('Spannung nach Ladeschluss: {0:0.2f} V'.format(Uactual))
         print_final(TimeDischarge, TotalDischarge, TotalPower)
-    reset_gpio()
 
 except KeyboardInterrupt:
-    pass
-    reset_gpio()
     print
     print("Keyboard interrupt - while discharging  ...")
-    print('Dauer: {0} min - Entladung: {1:0.6f} mAh  Energie: {2:0.6f} mWh'.format(TimeDischarge/60, TotalDischarge, TotalPower))
+    print_display("Interrupted....\n{0} s {1:0.2f} mAh".format(TimeDischarge,TotalDischarge))
+
+finally:
+#    pass
+#    sleep(0.5)
+    reset_gpio()
+#    print('Dauer: {0} min - Entladung: {1:0.6f} mAh  Energie: {2:0.6f} mWh'.format(TimeDischarge/60, TotalDischarge, TotalPower))
