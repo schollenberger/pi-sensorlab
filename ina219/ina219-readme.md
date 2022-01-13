@@ -65,4 +65,35 @@
 ## Code
 
   - `ra_strommessung1.py`
-    From https://www.rahner-edu.de/raspberry-pi/strom-messen-mit-ina219/  
+    From https://www.rahner-edu.de/raspberry-pi/strom-messen-mit-ina219/
+
+  - `battery_measure.py`
+    Simple battery discharger measuring accumulated current and power.
+    Stops after discharging below minimum discharge voltage.
+    There is a different project for a discharger with LCD display.
+    Wiring Diagram:
+    ```
+
+                                           +-------------+
+        +--------------------+             |   ina960    |
+        |                    |             +-------------+
+        |                    +-------------+-- Vin+      |
+        |                                  |             |
+        |                    +-------------+-- Vin-      |
+        |                    |             |             |
+        |  +-----------------+----+     +--+-- GND       |
+        |  |          +++    |+ | |     |  +-------------+
+        |  |  Relais  +++===>  |  |     |
+        |  |          +++     |   |     |
+        |  |                 |    |     |
+        |  +-----------------+----+     |
+        |           +--------+          |
+        |           |                   |
+        |          +++                  |
+        | +        | |   Discharge      |
+       -+-         | |   Resistor       |
+     ---+---       +++    ~ 4 Ohms      |
+        | -         |                   |
+        |           |                   |
+        +-----------+-------------------+
+    ```
