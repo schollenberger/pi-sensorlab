@@ -23,16 +23,18 @@
   Both HD44780 LCD modules have the same pin layout.
 
   ```
+    HD44780 1602 (2x16 char)
     +-----------------------------------------------------------------+
-    |  +------------------------------------------------------------+ |
-    |  |                                                            | |
-    |  |                                                            | |
-    |  +------------------------------------------------------------+ |
     |                                                                 |
-    |           Cathode  Anode                    Enable              |
-    |                 |  |                          |        C VCC GND|
-    |                 K  A D7 D6 D5 D4 D3 D2 D1 D0  E RW RS V0 VDD VSS|
-    |                 o  o  o  o  o  o  o  o  o  o  o  o  o  o  o  o  |
+    |   o  o  o  o  o  o  o  o  o  o  o  o  o  o  o  o                |
+    | VSS VDD V0 RS RW E  D0 D1 D2 D3 D4 D5 D6 D7 A  K                |
+    |                  |                          |  |                |
+    |               Enable                    Anode  Cathode          |
+    |                                                                 |
+    |  +------------------------------------------------------------+ |
+    |  | <First line>                                               | |
+    |  | <Second line>                                              | |
+    |  +------------------------------------------------------------+ |
     +-----------------------------------------------------------------+
 
     V0 / C - Contrast voltage use 10 kOhm potentiomenter between GND and VCC
@@ -43,9 +45,28 @@
     E      - Clock / Enable - no internal pull-up!
     A      - Anode of LED backlight (connect via 100 Ohms to +5V)
     K      - Cathode of LED backlight (connect to GND)
+
+    HD44780 2004 (4x20 char) - electrical compatiple with module above
+    +-----------------------------------------------------------------+
+    |                                                                 |
+    |   o  o  o  o  o  o  o  o  o  o  o  o  o  o  o  o                |
+    | VSS VDD V0 RS RW E  D0 D1 D2 D3 D4 D5 D6 D7 A  K                |
+    |                  |                          |  |                |
+    |               Enable                    Anode  Cathode          |
+    |                                                                 |
+    |  +------------------------------------------------------------+ |
+    |  | <First line>                                               | |
+    |  | <Second line>                                              | |
+    |  | <Third line>                                               | |
+    |  | <Fourth line>                                              | |
+    |  +------------------------------------------------------------+ |
+    +-----------------------------------------------------------------+
+
   ```
 
-  For parallel IO, connect Module the following (you need 8 wires in total):
+  For parallel IO, connect Module the following (you need 8 wires in total).
+  However, this setup requires to configure the module to 4-bit mode (but
+  this is standard with the Adafruit-CharLCD python module):
 
   ```
     RasüberryPi     ->  LCD Module
@@ -64,7 +85,6 @@
     Pin40 (GPIO 21) ->  RS
 
   ```    
-  With the connection setup from above the LCD module runs in 4-bit mode
 
 ## Install
 
@@ -80,45 +100,40 @@
     sudo pip install Adafruit-GPIO    #
   ```
 
-## Check setup
+## Usage
+  Using parallel IO the Pi controls the LCD module interface directly using
+  6 GPIO ports.
+  There are several Adafruit-CharLCD libraries on GitHub:
+     https://github.com/adafruit/Adafruit_Python_CharLCD/tree/master/Adafruit_CharLCD
+     https://github.com/born2net/raspberry/tree/master/Adafruit-Raspberry-Pi-Python-Code/Adafruit_CharLCD
+     https://github.com/codecube/raspberry-pi-GPIO/blob/master/Adafruit_CharLCD.py
 
-  - Check I2C bus on PI
-       sudo i2cdetect -y 1
+  The one that get installed via the pip command above is:
+     https://github.com/adafruit/Adafruit_Python_CharLCD/
+  Note, that it is deprecated and Adafruit wants you to use the CircuitPython
+  version.
 
+  This library can be used to initializes the LCD module, clear the display and
+  write messages to it.
+  To split messages running over several lines, you can use the newline ('\n')
+  character. However the 4x20 module doesn't behave as expected. On this
+  module the characters beyond column 19 of line 1 appear on the 3rd line.
+  You cannot address the 3rd and 4th line via newline characters using this
+  module.
+  One solution to this is to use python string formatting like in the following
+  example:
+  ```
+    "{0:20s}{2:20s}{1:20s}{3:20s}".format("Line1","Line2","Line3","Line4")
+  ```
 
 
 ## Code
 
-  - `ra_strommessung1.py`
-    From https://www.rahner-edu.de/raspberry-pi/strom-messen-mit-ina219/
+  - `lcd-simple-2x16.py`
+    From https://www.rototron.info/raspberry-pi-ina219-tutorial/
+    It uses the deprecated Adafruit-CharLCD library.
 
-  - `battery_measure.py`
-    Simple battery discharger measuring accumulated current and power.
-    Stops after discharging below minimum discharge voltage.
-    There is a different project for a discharger with LCD display.
-    Wiring Diagram:
-    ```
-
-                                           +-------------+
-        +--------------------+             |   ina960    |
-        |                    |             +-------------+
-        |                    +-------------+-- Vin+      |
-        |                                  |             |
-        |                    +-------------+-- Vin-      |
-        |                    |             |             |
-        |  +-----------------+----+     +--+-- GND       |
-        |  |          +++    |+ | |     |  +-------------+
-        |  |  Relais  +++===>  |  |     |
-        |  |          +++     |   |     |
-        |  |                 |    |     |
-        |  +-----------------+----+     |
-        |           +--------+          |
-        |           |                   |
-        |          +++                  |
-        | +        | |                  |
-       -+-         | |                  |
-     ---+---       +++                  |
-        | -         |                   |
-        |           |                   |
-        +-----------+-------------------+
-    ```
+  - `lcd-simple-4x20.py`
+    Derived from `lcd-simple-2x16.py`.
+    It uses the deprecated Adafruit-CharLCD library.
+ 
