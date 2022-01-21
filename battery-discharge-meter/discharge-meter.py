@@ -1,14 +1,16 @@
 #!/usr/bin/python
 
 # Records discharge characteristics of batteries
-# To be used with an INA219 Ampere/Voltage meter and a Relais 
+# To be used with an INA219 Ampere/Voltage meter and a Relais
 # to connect the discharge resistor and a LCD display to show
 # actual voltage, current and discharge values.
 #
 # It stops discharging when the battery voltage drops below a
 # minimum discharge value.
 #
-# 18.01.2022 Werner Schollenberger
+# It writes the discharge voltage characteristics into a CSV file.
+#
+# Created:  18.01.2022 Werner Schollenberger
 
 from ina219 import INA219, DeviceRangeError
 import RPi.GPIO as GPIO
@@ -16,6 +18,9 @@ from Adafruit_CharLCD import Adafruit_CharLCD
 from time import sleep
 
 import sys
+import csv
+import os.path
+import locale
 
 # discharge low voltage = 1.0 V (NiMH) / 0.85 - 1 V (NiCd)
 # see: https://de.wikipedia.org/wiki/Tiefentladung
@@ -43,17 +48,44 @@ lcd.clear()
 class DischargeCsv:
 # CSV class to log discharge statistics
 
-    fn = ""
+    def __init__(self, filename="discharge.out",overwrite = False):
+        self.fn = filename
+        try:
+            locale_name = 'de_DE.utf8'
+#            locale_name = 'de_DE'
+            locale.setlocale(locale.LC_ALL,locale_name)
+        except locale.Error as e:
+            print("WARN: Could not set locale for CSV file to <{0}> - ignoring.".format(locale_name))
+            print("WARN: locale.setlocale() Error message: <{0}>".format(e))
 
-    def __init__(self, filename="discharge.out"):
-        fn = filename
+        if os.path.isfile(self.fn):
+       	    if not overwrite:
+                print("ERROR: CSV file already exists - Aborting!.")
+                sys.exit()
+            else:
+                print("WARN: Overwriting existing CSV file <{}>".format(self.fn))
+        self.csv_file = open(self.fn, 'wb')
+
+        self.csv_writer = csv.writer(self.csv_file, delimiter=";")
+        self.csv_writer.writerow(["Time/sec","Ubat/V","Icurrent/mA","Pcurrent/mW","TotalDischarge/mAh","TotalPower/mWh"])
 
     def write(self, tim, u_act, i_act, p_act, t_discharge, t_power):
-        pass
+        if self.csv_writer:
+            self.csv_writer.writerow([locale.format('%d',tim),
+                                      locale.format('%0.4f',u_act),
+                                      locale.format('%0.2f',i_act),
+                                      locale.format('%0.2f',p_act),
+                                      locale.format('%0.2f',t_discharge),
+                                      locale.format('%0.2f',t_power)])
+
         #print(' *CSV* {0};{1:0.2f};{2:0.2f};{3:0.2f};{4:0.4f};{5:0.4f}'.format(tim,u_act,i_act,p_act,t_discharge,t_power))
 
     def close(self):
-         pass
+        if self.csv_file:
+            print("Closing CSV file...")
+            self.csv_file.close()
+        else:
+            print("DischarchCsv.close(): Nothing to close!!")
 
 
 def log_message(txt):
@@ -109,64 +141,65 @@ def reset_gpio():
     GPIO.cleanup()
 
 def print_status(tim, u_act, i_act, p_act, t_discharge, t_power):
-    log_message(' -- {0:6d} sec:  {1:5.2f} V  {2:7.2f} mA  {3:7.2f} mW  {4:8.2f} mAh  {5:8.2f}mWh'.format(tim,u_act,i_act,p_act,t_discharge,t_power))
+    log_message(' -- {0:6d} sec:  {1:5.4f} V  {2:7.2f} mA  {3:7.2f} mW  {4:8.2f} mAh  {5:8.2f}mWh'.format(tim,u_act,i_act,p_act,t_discharge,t_power))
     print_display('Run     {0}\n{1:0.2f}V {2:0.0f}mA {3:0.0f}mAh '.format(duration_to_hhmmss(tim),u_act,i_act,t_discharge))
 
 def print_final(tim, discharge, power):
     log_message('** Discharge duration: {0}\n** Total discharge:    {1:0.2f} mAh\n** Total energy:       {2:0.2f} mWh'.format(duration_to_hhmmss(tim), discharge, power))
     print_display('Done   {0}\n{1:0.2f} mAh {2:0.2f}mWh'.format(duration_to_hhmmss(tim), discharge, power))
 
-try:
-    TotalDischarge = 0.0
-    TotalPower = 0.0
-    TimeDischarge = 0 # in seconds
+if __name__ == "__main__":
+    try:
+        TotalDischarge = 0.0
+        TotalPower = 0.0
+        TimeDischarge = 0 # in seconds
 
-    csvfile = DischargeCsv()
+        csvfile = DischargeCsv("discharge.csv", overwrite=True)
 
-    Uactual,Iactual,Pactual = read_ina219()
-    if Uactual <= UMIN:
-        log_message('Battery voltage of {0:0.2f} V is too low for discharging it has to be at least {1:0.2f} V'.format(Uactual, UMIN))
-        print_display('Battery low: {0:0.2f} V\n'.format(Uactual))
-    else:
-        log_message('Initial voltage: {0:0.2f} V'.format(Uactual))
-        print_display('Idle    {0:0.2f} V'.format(Uactual))
-        sleep(5)
-        csvfile.write(TimeDischarge, Uactual, Iactual, Pactual,TotalDischarge, TotalPower)
-        log_message("Start discharging...")
-        turn_on()
-        sleep(1)
-        TimeDischarge  += 1
         Uactual,Iactual,Pactual = read_ina219()
-        print_status(TimeDischarge, Uactual, Iactual, Pactual, TotalDischarge, TotalPower)
-        csvfile.write(TimeDischarge, Uactual, Iactual, Pactual, TotalDischarge, TotalPower)
-        while Uactual > UMIN:
-            Uactual,Iactual,Pactual = read_ina219()
-            if TimeDischarge < DISCHARGE_INTERVAL:
-                delay = DISCHARGE_INTERVAL-TimeDischarge
-                sleep(delay)
-                TimeDischarge  += delay
-            else:
-                sleep(DISCHARGE_INTERVAL)
-                TimeDischarge  += DISCHARGE_INTERVAL
-            TotalDischarge += Iactual * DISCHARGE_INTERVAL/3600
-            TotalPower     += Pactual *  DISCHARGE_INTERVAL/3600
-            print_status(TimeDischarge, Uactual, Iactual, Pactual, TotalDischarge, TotalPower)
+        if Uactual <= UMIN:
+            log_message('Battery voltage of {0:0.2f} V is too low for discharging it has to be at least {1:0.2f} V'.format(Uactual, UMIN))
+            print_display('Battery low: {0:0.2f} V\n'.format(Uactual))
+        else:
+            log_message('Initial voltage: {0:0.2f} V'.format(Uactual))
+            print_display('Idle    {0:0.2f} V'.format(Uactual))
+            sleep(5)
             csvfile.write(TimeDischarge, Uactual, Iactual, Pactual,TotalDischarge, TotalPower)
+            log_message("Start discharging...")
+            turn_on()
+            sleep(1)
+            TimeDischarge  += 1
+            Uactual,Iactual,Pactual = read_ina219()
+            print_status(TimeDischarge, Uactual, Iactual, Pactual, TotalDischarge, TotalPower)
+            csvfile.write(TimeDischarge, Uactual, Iactual, Pactual, TotalDischarge, TotalPower)
+            while Uactual > UMIN:
+                Uactual,Iactual,Pactual = read_ina219()
+                if TimeDischarge < DISCHARGE_INTERVAL:
+                    delay = DISCHARGE_INTERVAL-TimeDischarge
+                    sleep(delay)
+                    TimeDischarge  += delay
+                else:
+                    sleep(DISCHARGE_INTERVAL)
+                    TimeDischarge  += DISCHARGE_INTERVAL
+                TotalDischarge += Iactual * DISCHARGE_INTERVAL/3600
+                TotalPower     += Pactual *  DISCHARGE_INTERVAL/3600
+                print_status(TimeDischarge, Uactual, Iactual, Pactual, TotalDischarge, TotalPower)
+                csvfile.write(TimeDischarge, Uactual, Iactual, Pactual,TotalDischarge, TotalPower)
 
-        log_message('Current battery voltage of {0:0.2f} V dropped below mimimum of {1:0.2f} V'.format(Uactual, UMIN))
-        log_message('Stopping discharge...')
-        turn_off()
-        sleep(1)
-        Uactual,dummy,dummy = read_ina219()
-        log_message('Spannung nach Ladeschluss: {0:0.2f} V'.format(Uactual))
-        csvfile.write(TimeDischarge+1, Uactual, 0.0, 0.0, TotalDischarge, TotalPower)
-        csvfile.close()
-        print_final(TimeDischarge, TotalDischarge, TotalPower)
+            log_message('Current battery voltage of {0:0.2f} V dropped below mimimum of {1:0.2f} V'.format(Uactual, UMIN))
+            log_message('Stopping discharge...')
+            turn_off()
+            sleep(1)
+            Uactual,dummy,dummy = read_ina219()
+            log_message('Spannung nach Ladeschluss: {0:0.2f} V'.format(Uactual))
+            csvfile.write(TimeDischarge+1, Uactual, 0.0, 0.0, TotalDischarge, TotalPower)
+            csvfile.close()
+            print_final(TimeDischarge, TotalDischarge, TotalPower)
 
-except KeyboardInterrupt:
-    log_message("Keyboard interrupt - while discharging  ...")
-    print_display("Interrupted....\n{0}  {1:0.2f} mAh".format(duration_to_hhmmss(TimeDischarge),TotalDischarge))
+    except KeyboardInterrupt:
+        log_message("Keyboard interrupt - while discharging  ...")
+        print_display("Interrupted....\n{0}  {1:0.2f} mAh".format(duration_to_hhmmss(TimeDischarge),TotalDischarge))
 
-finally:
-#    pass
-    reset_gpio()
+    finally:
+    #    pass
+        reset_gpio()
