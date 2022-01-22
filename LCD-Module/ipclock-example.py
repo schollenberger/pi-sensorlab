@@ -1,4 +1,6 @@
 #!/usr/bin/python
+#
+# Works on both Python2 and Python2
 
 from Adafruit_CharLCD import Adafruit_CharLCD
 from subprocess import *
@@ -16,15 +18,18 @@ cmd_wlan = "ip addr show wlan0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1"
 def run_cmd(cmd):
     p = Popen(cmd, shell=True, stdout=PIPE)
     output = p.communicate()[0]
-    return output
+    if not isinstance(output, str):
+         output = output.decode("utf-8")
+    return str(output)
 
 
-ipaddr = run_cmd(cmd_eth).rstrip("\n")
+ipaddr = run_cmd(cmd_eth)
 if len(ipaddr) == 0:
 #   ipaddr = run_cmd(cmd_wlan).rstrip("\n")
    ipaddr = run_cmd(cmd_wlan)
 
-print("IP address", ipaddr)
+ipaddr = ipaddr.rstrip("\n")
+print("IP address: {0}".format(ipaddr))
 print("Check running clock and IP address on LCD display")
 try:
     while 1:
@@ -36,6 +41,6 @@ except KeyboardInterrupt:
     pass
 
 lcd.clear()
-print
+print()
 print("That's all folks ...")
 
