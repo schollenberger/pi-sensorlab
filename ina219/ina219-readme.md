@@ -55,6 +55,14 @@
     sudo pip install Adafruit-GPIO    #
   ```
 
+  As an alternative to `pi-ina219` you may want to install the AdaFruit
+  CircuitPython library which works in conjuction with AdaFruit's Blinka module
+  and Python3 only.
+  To install this module execute:
+  ```
+    pip3 install adafruit-circuitpython-ina219
+  ```
+
 ## Check setup
 
   - Check I2C bus on PI
@@ -66,6 +74,10 @@
 
   - `ra_strommessung1.py`
     From https://www.rahner-edu.de/raspberry-pi/strom-messen-mit-ina219/
+
+  - `ina219_simpletest.py`
+    Uses the Adafruit CircuitPython ina219 library and prints out the basic
+    ina219 values.
 
   - `battery_measure.py`
     Simple battery discharger measuring accumulated current and power.
