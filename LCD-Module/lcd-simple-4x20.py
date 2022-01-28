@@ -6,7 +6,7 @@ import RPi.GPIO as GPIO
 from time import sleep
 from Adafruit_CharLCD import Adafruit_CharLCD
 
-lcd = Adafruit_CharLCD(rs=21, en=20, d4=16, d5=12, d6=7, d7=8,
+lcd = Adafruit_CharLCD(rs=21, en=20, d4=16, d5=12, d6=25, d7=24,
                        cols=20, lines=4)
 
 

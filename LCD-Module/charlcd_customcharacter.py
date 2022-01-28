@@ -14,7 +14,8 @@ lcd_rows = 2
 
 # Initialise the LCD class
 lcd = characterlcd.Character_LCD_Mono(
-    plcd.rs, plcd.en, plcd.d4, plcd.d5, plcd.d6, plcd.d7, lcd_columns, lcd_rows
+    plcd.rs, plcd.en, plcd.d4, plcd.d5, plcd.d6, plcd.d7, lcd_columns, lcd_rows,
+    plcd.backlight, True
 )
 
 checkmark = bytes([0x0, 0x0, 0x1, 0x3, 0x16, 0x1C, 0x8, 0x0])

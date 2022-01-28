@@ -14,7 +14,8 @@ from time import sleep
 lcd_columns = 20
 lcd_rows = 4
 
-lcd = character_lcd.Character_LCD_Mono(plcd.rs, plcd.en, plcd.d4, plcd.d5, plcd.d6, plcd.d7, lcd_columns, lcd_rows)
+lcd = character_lcd.Character_LCD_Mono(plcd.rs, plcd.en, plcd.d4, plcd.d5, plcd.d6, plcd.d7,
+         lcd_columns, lcd_rows, plcd.backlight, True)
 
 if __name__ == "__main__":
      sleep_duration = 3
@@ -72,12 +73,15 @@ if __name__ == "__main__":
              sleep(0.5)
              lcd.move_right()
 
-        #lcd.clear()
-        #lcd.message = "Going to sleep\nCya later!"
-        #sleep(sleep_duration)
-        # Turn backlight off
-        #lcd.backlight = False
-        #sleep(sleep_duration)
+        lcd.clear()
+        lcd.message = "Going to sleep\nCya later!"
+        print(lcd.message)
+        sleep(sleep_duration)
+        print("Turn backlight off...")
+        lcd.backlight = False
+        sleep(sleep_duration)
+        print("Turn backlight on again...")
+        lcd.backlight = True
 
         # creating a new character - ASCII 0x00
         lcd.clear()

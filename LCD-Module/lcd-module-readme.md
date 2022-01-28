@@ -43,7 +43,12 @@
     RS     - Register select (0 = command register, 1 = data register)
     RW     - Read/Write, may be set to GND write only mode and busy waiting
     E      - Clock / Enable - no internal pull-up!
-    A      - Anode of LED backlight (connect via 100 Ohms to +5V)
+    A      - Anode of LED backlight (connect via at 68 - 100 Ohms to +5V).
+             Voltage on LED on a 4x20 display has been measured to be
+             between 2.8-3.0V. Typical current is specified as 45mA,
+             however, if you want to control the backlight via a GPIO
+             port, the current should be around 2mA which requries the
+             resistor to be around 1.5kOhms.
     K      - Cathode of LED backlight (connect to GND)
 
     HD44780 2004 (4x20 char) - electrical compatiple with module above
@@ -65,26 +70,32 @@
   ```
 
   For parallel IO, connect Module the following (you need 8 wires in total).
-  However, this setup requires to configure the module to 4-bit mode (but
-  this is standard with the Adafruit-CharLCD python module):
+  Note, that this setup requires the module to work in 4-bit mode and has
+  to be initialized at the very beginning (which Adafruit-CharLCD python
+  library does anyways):
 
   ```
-    RasüberryPi     ->  LCD Module
+    RaspberryPi     ->  LCD Module
     ---------------------------------
 
     Pin 2 (5.0V)    ->  VDD/VCC
-                    ->  [Resistor 51 /100 Ohms]  -> A / Anode
+                    ->  [Resistor 68 - 100 Ohms, better 1.5 kOhms]  -> A / Anode
 
     Pin14 (GND)     ->  VSS/GND, RW. K/Cathode
                     ->  [Resistor 4.7 kOhms]  -> C / V0
-    Pin24 (GPIO 08) ->  D7
-    Pin26 (GPIO 07) ->  D6
+    Pin16 (GPIO 23) ->  (K/Cathode - if you want to support setting the
+                        display to dark via IO port, in that case the
+                        resistor between Cathode and +5V must be 1.5 kOhms)
+    Pin18 (GPIO 24) ->  D7
+    Pin22 (GPIO 25) ->  D6
     Pin32 (GPIO 12) ->  D5
     Pin36 (GPIO 16) ->  D4
     Pin38 (GPIO 20) ->  E
     Pin40 (GPIO 21) ->  RS
 
-  ```    
+  ```
+  The GPIO pins have been selected so that no overlap with thi I2C bus and
+  SPI bus occurs.
 
 ## Install
 
@@ -157,15 +168,15 @@
         import adafruit_character_lcd.character_lcd as character_lcd
       ```
 
-    - Define LCD display GPIO ports:
+    - Define LCD display GPIO ports (see Python module lcd_circuit_ports.py):
       ```
-        lcd_rs = digitalio.DigitalInOut(board.D21)
-        lcd_en = digitalio.DigitalInOut(board.D20)
-        lcd_d7 = digitalio.DigitalInOut(board.D16)
-        lcd_d6 = digitalio.DigitalInOut(board.D12)
-        lcd_d5 = digitalio.DigitalInOut(board.D7)
-        lcd_d4 = digitalio.DigitalInOut(board.D8)
-        # lcd_backlight = digitalio.DigitalInOut(board.D13)
+        lcd_rs = digitalio.DigitalInOut(board.Dxx)
+        lcd_en = digitalio.DigitalInOut(board.Dxx)
+        lcd_d7 = digitalio.DigitalInOut(board.Dxx)
+        lcd_d6 = digitalio.DigitalInOut(board.Dxx)
+        lcd_d5 = digitalio.DigitalInOut(board.Dxx)
+        lcd_d4 = digitalio.DigitalInOut(board.Dxx)
+        # lcd_backlight = digitalio.DigitalInOut(board.Dxx)
       ```
 
     - Specify display dimensions:

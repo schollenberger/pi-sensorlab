@@ -7,7 +7,7 @@ from subprocess import *
 from time import sleep, strftime
 from datetime import datetime
 
-lcd = Adafruit_CharLCD(rs=21, en=20, d4=16, d5=12, d6=7, d7=8,
+lcd = Adafruit_CharLCD(rs=21, en=20, d4=16, d5=12, d6=25, d7=24,
                        cols=16, lines=2)
 
 cmd_eth  = "ip addr show eth0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1"
