@@ -183,9 +183,9 @@ def print_status(lcd, tim, u_act, i_act, p_act, t_discharge, t_power):
          duration_to_hhmmss(tim),u_act,i_act,t_discharge, t_power))
 
 def print_final(lcd, tim, discharge, power, voltage):
-    log_message('** Discharge duration: {0}\n** Total discharge:    {1:0.2f} mAh\n** Total energy:       {2:0.2f} mWh\n** Voltage:            {2:0.3f}V '.format(
+    log_message('** Discharge duration: {0}\n** Total discharge:    {1:0.2f} mAh\n** Total energy:       {2:0.2f} mWh\n** Voltage:            {3:0.3f}V '.format(
          duration_to_hhmmss(tim), discharge, power, voltage))
-    print_display(lcd, 'Done after {0}\nCapacity: {1:0.2f}mAh\nPower:    {2:0.2f}mWh\nVoltage:  {2:0.3f}V'.format(
+    print_display(lcd, 'Done after {0}\nCapacity: {1:0.2f}mAh\nPower:    {2:0.2f}mWh\nVoltage:  {3:0.3f}V'.format(
          duration_to_hhmmss(tim), discharge, power, voltage))
 
 if __name__ == "__main__":
@@ -197,7 +197,7 @@ if __name__ == "__main__":
     relay_io.direction = digitalio.Direction.OUTPUT
 
     lcd = character_lcd.Character_LCD_Mono(plcd.rs, plcd.en, plcd.d4, plcd.d5, plcd.d6, plcd.d7,
-               lcd_columns, lcd_rows)
+               lcd_columns, lcd_rows, plcd.backlight, True)
     lcd.clear()
 
     try:
