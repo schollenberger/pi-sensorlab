@@ -1,5 +1,5 @@
 # .gitignore for pi-sensorlab project
 */__pycache__
-*.py[cod]
-*.log
+**/*.py[cod]
+**/*.log
 
