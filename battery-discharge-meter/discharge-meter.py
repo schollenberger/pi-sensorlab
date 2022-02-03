@@ -12,6 +12,9 @@
 # It uses the Adafruit Circuit LCD libraries to control the
 # ina219 device, relais, and the LCD display.
 #
+# Use AD converter MCP3008 to measure battery voltage in function
+# ina_read() as the values form the INA219 board are not accurate.
+#
 # Created:  18.01.2022 Werner Schollenberger
 
 import board
@@ -27,6 +30,15 @@ import os.path
 import locale
 from datetime import datetime
 sys.path.append('../LCD-Module')
+sys.path.append('../ad-converter')
+
+from MCP3008 import MCP3008  # AD converter support using SPI bus
+adc = MCP3008()
+adc_channel = 0
+adc_uref = 3.331
+adc_range = 4096.0
+
+print("Current Value on AD channel {0}: {1}".format(adc_channel, adc.read(adc_channel)))
 
 import lcd_circuit_ports as plcd
 lcd_columns = 20
@@ -136,12 +148,13 @@ def ina219_read(ina219):
         Ushunt = ina219.shunt_voltage  # voltage between V+ and V- across the shunt
         Uina = ina219.bus_voltage      # voltage on V- (load side)
 #        Uges = Uina
-        Uges = Uina + Ushunt
+#        Uges = Uina + Ushunt
+        Uges = adc.read(adc_channel) * adc_uref / adc_range
         Iina = ina219.current  # current in mA
         Pina = ina219.power # power in watts
 
-##        log_message('Ubat/Ushunt/I/P: {0:0.5f} V /  {5:0.5f} V / {1:0.4f} mA / {2:0.4f} W - Pbatt {3:0.4f} mW - Pload {4:0.4f} mW'.format(
-##             Uges,Iina,Pina,Iina*Uges,Iina*Uina,Ushunt))
+##        log_message('Uges/Uina/Ushunt/I/P: {0:0.4f} V /  {6:0.4f} V /  {5:0.4f} V / {1:0.2f} mA / {2:0.2f} W - Pbatt {3:0.4f} mW - Pload {4:0.2f} mW'.format(
+##             Uges,Iina,Pina,Iina*Uges,Iina*Uina,Ushunt,Uina))
 #        print_display('* BDM * {0:0.2f}V\n{1:0.1f}mA {2:0.1f}mW'.format(Uges,Iina,Iina*Uges))
         # print('Pges   : {0:0.2f} mW'.format(Pina))
         # print('UShunt : {0:0.2f} mV'.format(Ushunt))
@@ -175,7 +188,7 @@ def print_start(lcd, uact,battery_low=False):
 
 
 def print_status(lcd, tim, u_act, i_act, p_act, t_discharge, t_power):
-    log_message(' -- {0:6d} sec:  {1:5.4f} V  {2:7.2f} mA  {3:7.2f} mW  {4:8.2f} mAh  {5:8.2f}mWh'.format(
+    log_message(' -- {0:6d} sec:  {1:5.3f} V  {2:7.2f} mA  {3:7.2f} mW  {4:8.2f} mAh  {5:8.2f}mWh'.format(
          tim,u_act,i_act,p_act,t_discharge,t_power))
 #    print_display(lcd, 'Run     {0}\n{1:0.2f}V {2:0.0f}mA {3:0.0f}mAh '.format(duration_to_hhmmss(tim),
 #         u_act,i_act,t_discharge))
@@ -183,7 +196,7 @@ def print_status(lcd, tim, u_act, i_act, p_act, t_discharge, t_power):
          duration_to_hhmmss(tim),u_act,i_act,t_discharge, t_power))
 
 def print_final(lcd, tim, discharge, power, voltage):
-    log_message('** Discharge duration: {0}\n** Total discharge:    {1:0.2f} mAh\n** Total energy:       {2:0.2f} mWh\n** Voltage:            {3:0.3f}V '.format(
+    log_message('** Discharge duration: {0}\n** Total discharge:    {1:0.2f} mAh\n** Total energy:       {2:0.2f} mWh\n** Voltage:             {3:0.3f} V '.format(
          duration_to_hhmmss(tim), discharge, power, voltage))
     print_display(lcd, 'Done after {0}\nCapacity: {1:0.2f}mAh\nPower:    {2:0.2f}mWh\nVoltage:  {3:0.3f}V'.format(
          duration_to_hhmmss(tim), discharge, power, voltage))
@@ -230,6 +243,7 @@ if __name__ == "__main__":
             log_message("Voltage difference to trigger new CSV entry: {0:0.4f}".format(csv_delta_u))
 
             while Uactual > UMIN:
+
                 if TimeDischarge < DISCHARGE_INTERVAL:
                     delay = DISCHARGE_INTERVAL-TimeDischarge
                     sleep(delay)
@@ -239,6 +253,10 @@ if __name__ == "__main__":
                     TimeDischarge  += DISCHARGE_INTERVAL
                 TotalDischarge += Iactual * DISCHARGE_INTERVAL/3600
                 TotalPower     += Pactual *  DISCHARGE_INTERVAL/3600
+
+                # read new values
+                Uactual,Iactual,Pactual = ina219_read(ina)
+
                 print_status(lcd, TimeDischarge, Uactual, Iactual, Pactual, TotalDischarge,
                      TotalPower)
                 # reduce number of rows in CSV file
@@ -247,9 +265,6 @@ if __name__ == "__main__":
                      csvfile.write(TimeDischarge, Uactual, Iactual, Pactual,TotalDischarge, TotalPower)
                      csv_last_uactual = Uactual
                      csv_last_time =  TimeDischarge
-
-                # read new value
-                Uactual,Iactual,Pactual = ina219_read(ina)
 
             log_message('Current battery voltage of {0:0.2f} V dropped below mimimum of {1:0.2f} V'.format(
                  Uactual, UMIN))
