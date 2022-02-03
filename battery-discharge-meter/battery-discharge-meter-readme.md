@@ -3,8 +3,8 @@
   current while discharging a battery.
 
   Measuring voltage and current is done via the AdaFruit INA 219 breakout
-  board, a relais board, a 2x16 char LCD display from AZ-Delivery and a
-  battery holder with discharge resistor.
+  board, an electircal relay board, a 2x16 char LCD display from AZ-Delivery
+  and a battery holder with discharge resistor.
 
   It uses the I2C bus for the INA board and parallel IO to drive the display.
 
@@ -150,6 +150,20 @@
     sudo apt-get upgrade
     sudo apt-get install python-dev
     sudo apt-get install i2c-tools
+
+    # Install AdaFruit Blinka - see as well the Pi Installations document.
+    cd ~
+    sudo pip3 install --upgrade adafruit-python-shell
+    wget https://raw.githubusercontent.com/adafruit/Raspberry-Pi-Installer-Scripts/master/raspi-blinka.py
+    sudo python3 raspi-blinka.py
+    # -> you have to reboot
+
+    pip3 install adafruit-circuitpython-ina219
+    pip3 install adafruit-circuitpython-charlcd
+
+    # The lines below may be outdated as the newer code versions
+    # in this project use the AdaFruit CircuitPython libraries which
+    # are the only ones AdaFruit still supports.
 
     sudo pip install pi-ina219        # Python INA219 support on PI
     sudo pip install Adafruit-PureIO  # .
