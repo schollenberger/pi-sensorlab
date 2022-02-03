@@ -111,25 +111,61 @@
     Pin38 (GPIO 20) ->  E
     Pin40 (GPIO 21) ->  RS
 
+  ```
+
+  AD converter MCP3008:
+
+  ```
+
+               +-----------+
+        DGND --+  9      8 +-- CH7
+     CS/SHDN --+ 10      7 +-- CH6
+         Din --+ 11      6 +-- CH5
+        Dout --+ 12      5 +-- CH4
+         CLK --+ 13      4 +-- CH3
+        AGND --+ 14      3 +-- CH2
+        Vref --+ 15      2 +-- CH1
+         Vdd --+ 16  xx  1 +-- CH0
+               +-----------+
+  ```
+
+  Connect AD converter the following:
+
+  ```
+    RaspberryPi    ->  MCP3008
+    --------------------------------
+    Pin 1 (3.3V)   ->  Pin 16 VDD
+    Pin 1 (3.3V)   ->  Pin 15 Vref
+    Pin 6 (GND)    ->  Pin 14 AGND
+    Pin 23 (SCLK)  ->  Pin 13 (CLK)
+    Pin 21 (MISO)  ->  Pin 12 (Dout)
+    Pin 19 (MOSI)  ->  Pin 11 (Din)
+    Pin 24 (CE0)   ->  Pin 10 (CS/SHDN)
+    Pin 6 (GND)    ->  Pin  9 (DGND)
+
+
   ```    
 
   Complete setup (w/o display):
   ```
-
-                                         +-------------+
-      +--------------------+             |   ina960    |
-      |                    |             +-------------+
-      |                    +-------------+-- Vin+      |
-      |                                  |             |
-      |                    +-------------+-- Vin-      |
-      |                    |             |             |
-      |  +-----------------+----+     +--+-- GND       |
-      |  |          +++    |+ | |     |  +-------------+
-      |  |  Relais  +++===>  |  |     |
-      |  |          +++     |   |     |
-      |  |                 |    |     |
-      |  +-----------------+----+     |
-      |           +--------+          |
+                                              +--------------+
+                           0------------------+-- CH0        |
+                           |                  |              |
+                           |                  | AD-Converter |
+                           |                  |              |
+      +--------------------+          +-------+-- AGND       |
+      |                    |          |       +--------------+
+      |                    +---------------+
+      |                               |    |  +-------------+
+      |                    +-------------+ |  |   ina960    |
+      |                    |          |  | |  +-------------+
+      |  +-----------------+----+     |  | +--+-- Vin+      |
+      |  |          +++    |+ | |     |  |    |             |
+      |  |  Relais  +++===>  |  |     |  +----+-- Vin-      |
+      |  |          +++     |   |     |       |             |
+      |  |                 |    |     +-------+-- GND       |
+      |  +-----------------+----+     |       +-------------+
+      |           +--------o          |
       |           |                   |
       |          +++                  |
       | +        | |   Discharge      |
@@ -137,7 +173,7 @@
    ---+---       +++    ~ 4 Ohms      |
       | -         |                   |
       |           |                   |
-      +-----------+-------------------+
+      +-----------+--------0----------+
   ```
 
 
@@ -160,6 +196,12 @@
 
     pip3 install adafruit-circuitpython-ina219
     pip3 install adafruit-circuitpython-charlcd
+
+    # download SpiDev library, unpack and install:
+    wget https://github.com/doceme/py-spidev/archive/master.zip
+    unzip master.zip
+    cd py-spidev-master
+    sudo python setup.py install
 
     # The lines below may be outdated as the newer code versions
     # in this project use the AdaFruit CircuitPython libraries which
