@@ -25,7 +25,7 @@
   Connect AD converter the following:
 
   ```
-    RasüberryPi    ->  MCP3008
+    RaspberryPi    ->  MCP3008
     --------------------------------
     Pin 1 (3.3V)   ->  Pin 16 VDD
     Pin 1 (3.3V)   ->  Pin 15 Vref
@@ -37,7 +37,7 @@
     Pin 6 (GND)    ->  Pin  9 (DGND)
 
 
-  ```    
+  ```
   Joystick B01
   ```
     Sensor Pins:
@@ -45,7 +45,7 @@
        +----------------+
        |                |
        |                |
-       |                |       
+       |                |
      --+ +5V            |
        |                |
      --+ GND            |
@@ -58,12 +58,12 @@
        +----------------+
   ```
 
-  The button has already a 2.2 kOhm pull-up resistor on the PCB.
+  The button has already a 2.2 kOhms pull-up resistor on the PCB.
 
   Connect the `Allnet Joystick B01` to the AD Converter:
   ```
     AD Channel ->   B01 Joystick
-    ----------------------------    
+    ----------------------------
     CH0          ->   BUT
     CH1          ->   X
     CH2          ->   Y
@@ -98,5 +98,5 @@
     Read channel 0 and 1 periodically every second and convert to voltage.
 
   - `joystick_test.py`
-    Read Joystick values 
+    Read Joystick values
     wget http://www.tutorials-raspberrypi.de/wp-content/uploads/scripts/joystick_test.py
