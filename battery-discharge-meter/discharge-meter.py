@@ -19,6 +19,7 @@
 # are not accurate.
 #
 # This tool supports command line parameters and options.
+# The tool uses python logging as well.
 #
 # Created:  18.01.2022 Werner Schollenberger
 
@@ -35,6 +36,38 @@ import os.path
 import locale
 from datetime import datetime
 from argparse import ArgumentParser
+import logging
+from logging.config import dictConfig
+
+loglevel_message = 5
+
+logging_config = dict(
+    version = 1,
+    formatters = {
+        'f': {'format':
+              '%(asctime)s %(name)-14s %(levelname)-8s %(message)s'},
+        'm': {'format':
+              '%(asctime)-12s  ***  %(message)s'},
+        },
+    handlers = {
+        'h': {'class': 'logging.StreamHandler',
+              'formatter': 'f',
+              'level': logging.DEBUG},
+        'm': {'class': 'logging.StreamHandler',
+              'stream': sys.stdout,
+              'formatter': 'm',
+              'level': loglevel_message},
+        },
+    loggers = {
+        'message': {'handlers': ['m'],
+                    'level': loglevel_message},
+        },
+    root = {
+        'handlers': ['h'],
+        'level': logging.WARNING,
+        },
+)
+
 
 sys.path.append('../LCD-Module')
 sys.path.append('../ad-converter')
@@ -58,19 +91,12 @@ UMIN = 1.00  # in Volts discharge low voltage
 DISCHARGE_INTERVAL = 5  #seconds
 
 
-# We use the log_message() function to allow program to run in background
-# and retrieve latest messages from stdout (nohup.out) by flushing stdout
-# all the time. In addition , it can send output to a second file.
-#
-# TODO: For now we use the global variable "log_file" to indicate a separate
-# log stream. We should move to python logger object !!
-
+# We use the log_message() function print "message" to which a different
+# logging format applies. We use a special logger named "message" for
+# which we have a separate configuration on the logging dictionary.
 def log_message(txt):
-    print(txt)
-    sys.stdout.flush()
-    if hasattr(logfile, "write"):
-        print(txt, file=logfile)
-        logfile.flush()
+    logger = logging.getLogger("message")
+    logger.log(loglevel_message,txt)
 
 
 # Helper function to prevent accidential file overwrite
@@ -112,21 +138,27 @@ def duration_to_hhmmss(duration):
 class DischargeCsv:
 
     def __init__(self, csv_file):
+        self.logger = logging.getLogger('DischargeCsv')
+        self.logger.debug("Class instantiated.")
         try:
             locale_name = 'de_DE.utf8'
 #            locale_name = 'de_DE'
             locale.setlocale(locale.LC_ALL,locale_name)
         except locale.Error as e:
-            log_message("WARN: Could not set locale for CSV file to <{0}>.".format(
+            self.logger.warning("Could not set locale for CSV file to <{0}>.".format(
                  locale_name))
-            log_message("WARN: locale.setlocale() Error message: <{0}>".format(e))
+            self.logger.warning("locale.setlocale() Error message: <{0}>".format(e))
 
         self.csv_writer = csv.writer(csv_file, delimiter=";")
+        self.logger.debug("writing csv-header")
         self.csv_writer.writerow(["Time/sec","Ubat/V","Umin+/V", "Icurrent/mA",
              "Pcurrent/mW","TotalDischarge/mAh","TotalPower/mWh"])
 
     def write(self, tim, u_act, i_act, p_act, t_discharge, t_power):
         if self.csv_writer:
+            self.logger.debug('csv-row: {0};{1:0.2f};{2:0.2f};{3:0.2f};{4:0.4f};{5:0.4f}'.format(
+                           tim,u_act,u_act-UMIN,i_act,p_act,t_discharge,t_power))
+
             self.csv_writer.writerow([locale.format_string('%d',tim),
                                       locale.format_string('%0.4f',u_act),
                                       locale.format_string('%0.4f',u_act-UMIN),
@@ -134,9 +166,9 @@ class DischargeCsv:
                                       locale.format_string('%0.2f',p_act),
                                       locale.format_string('%0.2f',t_discharge),
                                       locale.format_string('%0.2f',t_power)])
+        else:
+            self.logger.error("Class not properly initialized - no csv_writer object")
 
-        #log_message(' *CSV* {0};{1:0.2f};{2:0.2f};{3:0.2f};{4:0.4f};{5:0.4f}'.format(
-        #     tim,u_act,u_act-UMIN,i_act,p_act,t_discharge,t_power))
 
 def ina219_init(ina219):
     # optional : change configuration to use 32 samples averaging for both bus voltage
@@ -148,6 +180,7 @@ def ina219_init(ina219):
 
 
 def ina219_read(ina219):
+    logger = logging.getLogger("ina219_read()")
     Uges = Iina = 0.0
     try:
         Ushunt = ina219.shunt_voltage  # voltage between V+ and V- across the shunt
@@ -158,35 +191,42 @@ def ina219_read(ina219):
         Iina = ina219.current  # current in mA
         Pina = ina219.power # power in watts
 
-##        log_message('Uges/Uina/Ushunt/I/P: {0:0.4f} V /  {6:0.4f} V /  {5:0.4f} V / {1:0.2f} mA / {2:0.2f} W - Pbatt {3:0.4f} mW - Pload {4:0.2f} mW'.format(
-##             Uges,Iina,Pina,Iina*Uges,Iina*Uina,Ushunt,Uina))
+        logger.debug('Uges/Uina/Ushunt/Iina/Pina: {0:0.4f} V /  {6:0.4f} V /  {5:0.4f} V / {1:0.2f} mA / {2:0.5f} W - Pbatt {3:0.2f} mW - Pload {4:0.2f} mW'.format(
+             Uges,Iina,Pina,Iina*Uges,Iina*Uina,Ushunt,Uina))
 #        log_message_display('* BDM * {0:0.2f}V\n{1:0.1f}mA {2:0.1f}mW'.format(Uges,Iina,Iina*Uges))
-        # log_message('Pges   : {0:0.2f} mW'.format(Pina))
-        # log_message('UShunt : {0:0.2f} mV'.format(Ushunt))
     except DeviceRangeError as e:
-        log_message("ina219_read(): Range error - current too high.")
+        logger.error("ina219_read(): Range error - current too high.")
         raise
 
     return Uges,Iina,Iina*Uges
 
 def turn_on(relay_io):
+    logger = logging.getLogger("turn_on()")
+    logger.debug("Turn relay on")
     relay_io.value = True
     sleep(0.5)
 
 def turn_off(relay_io):
+    logger = logging.getLogger("turn_off()")
+    logger.debug("Turn relay off")
     relay_io.value = False
 
 def reset_gpio(relay_io):
+    logger = logging.getLogger("reset_gpio()")
+    logger.debug("Turn relay off")
     turn_off(relay_io)
 #    GPIO.cleanup()
 
 def print_display(lcd, txt):
+    logger = logging.getLogger("print_display")
+    logger.debug("Printing to display: \n%s", txt)
     lcd.clear()
     lcd.message = txt
 
 
 def print_start(lcd, uact,battery_low=False):
-    log_message("\nDischarge Meter - starting new measurement...")
+    logger = logging.getLogger("print_start")
+    log_message("Discharge Meter - starting new measurement...")
     if battery_low:
          log_message('Battery voltage of {0:0.2f} V is too low for discharging it has to be at least {1:0.2f} V'.format(
               Uactual, UMIN))
@@ -199,7 +239,8 @@ def print_start(lcd, uact,battery_low=False):
 
 
 def print_status(lcd, tim, u_act, i_act, p_act, t_discharge, t_power):
-    log_message(' -- {0:6d} sec:  {1:5.3f} V  {2:7.2f} mA  {3:7.2f} mW  {4:8.2f} mAh  {5:8.2f}mWh'.format(
+    logger = logging.getLogger("print_status")
+    logger.info(' Status: {0:6d} sec:  {1:5.3f} V  {2:7.2f} mA  {3:7.2f} mW  {4:8.2f} mAh  {5:8.2f}mWh'.format(
          tim,u_act,i_act,p_act,t_discharge,t_power))
 #    print_display(lcd, 'Run     {0}\n{1:0.2f}V {2:0.0f}mA {3:0.0f}mAh '.format(duration_to_hhmmss(tim),
 #         u_act,i_act,t_discharge))
@@ -207,7 +248,8 @@ def print_status(lcd, tim, u_act, i_act, p_act, t_discharge, t_power):
          duration_to_hhmmss(tim),u_act,i_act,t_discharge, t_power))
 
 def print_final(lcd, tim, discharge, power, voltage):
-    log_message('** Discharge duration: {0}\n** Total discharge:    {1:0.2f} mAh\n** Total energy:       {2:0.2f} mWh\n** Voltage:             {3:0.3f} V '.format(
+    logger = logging.getLogger("print_final")
+    log_message('\n** Discharge duration: {0}\n** Total discharge:    {1:0.2f} mAh\n** Total energy:       {2:0.2f} mWh\n** Voltage:             {3:0.3f} V '.format(
          duration_to_hhmmss(tim), discharge, power, voltage))
     print_display(lcd, 'Done after {0}\nCapacity: {1:0.2f}mAh\nPower:    {2:0.2f}mWh\nVoltage:  {3:0.3f}V'.format(
          duration_to_hhmmss(tim), discharge, power, voltage))
@@ -216,19 +258,15 @@ def print_final(lcd, tim, discharge, power, voltage):
 # Main routine
 
 if __name__ == "__main__":
-
     # Argument parsing
-
     parser = ArgumentParser(
              description='Discharge Meter - Discharges a battery while measuring'
              'voltage and current. Stops if voltage drops below minimum value.'
              )
-
     parser.add_argument('prefix', nargs='?', default="result",
                         help='Measurement prefix - taken for '
                         'the CSV amd log file name, default: "%(default)s".'
                        )
-
     parser.add_argument('-v', '--verbose', action='count', default=0,
                        help='Increase log level -vv is debug.')
 
@@ -253,33 +291,63 @@ if __name__ == "__main__":
     logfile_name = None
     file_timestamp = ""
 
+    logging.config.dictConfig(logging_config)
+    # prepare for message logging on file
+    logging.addLevelName(loglevel_message, 'OUTPUT')
+
+    if args.verbose > 0:
+        if args.verbose == 1:
+            logging.root.setLevel(logging.INFO)
+        else:
+            logging.root.setLevel(logging.DEBUG)
+
+    logger = logging.getLogger(__name__)
+
+    logger.debug("Verbose counter = %s", args.verbose)
+    logger.info("Log level = %s.",
+         logging.getLevelName(logging.root.getEffectiveLevel())
+         )
+
     if args.timestamp:
         today = datetime.now()
         file_timestamp = "-{0:4d}-{1:02d}-{2:02d}_{3:02d}{4:02d}".format(
                           today.year,today.month,today.day,today.hour,today.minute)
 
-    csvfile_name = args.prefix + file_timestamp + ".csv"
-    if check_would_overwrite(csvfile_name, files_overwrite):
-        # Note what function above aborts for existing file and overwrite = False
-        print("WARN: Overwriting existing CSV file <{0}>".format(csvfile_name))
-    else:
-        print("Write discharge values to file {0}".format(csvfile_name))
-    raw_csvfile = open(csvfile_name, "w")
-
     if args.log_output:
         # Create log file name from prefix and optionally timestamp
         logfile_name = args.prefix + file_timestamp + ".log"
+        logger.debug("Set logfile_name to %s", logfile_name)
 
     if args.outfile:
         logfile_name = args.outfile
+        logger.debug("Got logfile_name from command line: %s", logfile_name)
 
     if logfile_name:
         if check_would_overwrite(logfile_name, files_overwrite):
            # Note what function above aborts for existing file and overwrite = False
-            print("WARN: Overwriting existing log file <{0}>".format(logfile_name))
-        else:
-            print("Logging to file {0}".format(logfile_name))
+            logger.warn("Overwriting existing log file <{0}>".format(logfile_name))
+
         logfile = open(logfile_name, 'w')
+
+        _fmt = logging.Formatter(logging_config['formatters']['f']['format'])
+        _handler = logging.StreamHandler(logfile)
+#        _handler.setLevel(logging.DEBUG)
+        _handler.setFormatter(_fmt)
+        logging.root.addHandler(_handler)
+        logger.info("Logging to file %s - set console logging to WARNING.",
+                     logfile_name)
+        ch = logging.root.handlers[0]
+        ch.setLevel(logging.WARNING)
+
+
+    csvfile_name = args.prefix + file_timestamp + ".csv"
+    if check_would_overwrite(csvfile_name, files_overwrite):
+        # Note what function above aborts for existing file and overwrite = False
+        logger.warning("Overwriting existing CSV file <{0}>".format(csvfile_name))
+    else:
+        logger.info("Write discharge values to file {0}".format(csvfile_name))
+    raw_csvfile = open(csvfile_name, "w")
+
 
     # Initialize peripheral hardware components
 
@@ -326,7 +394,7 @@ if __name__ == "__main__":
             csv_last_uactual = Uactual
             csv_last_time =  TimeDischarge
             csv_delta_u = (Uactual - UMIN)/20.0
-            log_message("Voltage difference to trigger new CSV entry: {0:0.4f}".format(csv_delta_u))
+            logger.info("Voltage difference to trigger new CSV entry: {0:0.4f}".format(csv_delta_u))
 
             while Uactual > UMIN:
 
@@ -347,14 +415,14 @@ if __name__ == "__main__":
                      TotalPower)
                 # reduce number of rows in CSV file
                 if (abs(csv_last_uactual - Uactual) > csv_delta_u) or ((TimeDischarge - csv_last_time )> 60):
-                     log_message("-- new row in CSV file --")
+                     logger.info("Adding new row to CSV file.")
                      csvfile.write(TimeDischarge, Uactual, Iactual, Pactual,TotalDischarge, TotalPower)
                      csv_last_uactual = Uactual
                      csv_last_time =  TimeDischarge
 
             log_message('Current battery voltage of {0:0.2f} V dropped below mimimum of {1:0.2f} V'.format(
                  Uactual, UMIN))
-            log_message('-- new row in CSV file ..')
+            logger.info("Adding new row to CSV file.")
             csvfile.write(TimeDischarge, Uactual, Iactual, Pactual,TotalDischarge, TotalPower)
 
             log_message('Stopping discharge...')
@@ -379,7 +447,10 @@ if __name__ == "__main__":
     finally:
     #    pass
         reset_gpio(relay_io)
-        if hasattr(logfile, "close"):
-            logfile.close()
         if hasattr(raw_csvfile, "close"):
+            logger.info("Closing CSV file...")
             raw_csvfile.close()
+        if hasattr(logfile, "close"):
+            logger.info("Closing log file...")
+            logfile.close()
+
