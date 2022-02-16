@@ -1,18 +1,20 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
-# This module defines the custom OLED SH1106 Display object compatible to
-# a SSD1306 Display and LCD device.
-# It is based on the LUMA OLED library.
+# This module defines the custom OLED dDisplay object based on the
+# luma.oled.device module. It can be invoked for both controller
+# chips SH1106 and SSD1306.
+#
+# It uses the luma.core.reder.canvas object to display text.
 #
 from luma.core.interface.serial import i2c
 from luma.core.render import canvas
 from luma.oled.device import sh1106, ssd1306
 from PIL import ImageFont, ImageDraw, Image
 
-class OledSh1106:
-    def __init__(self, i2cbus,font = None):
-        self.device = sh1106(i2cbus)
+class OledLuma:
+    def __init__(self, device,font = None):
+        self.device = device
         if not font:
             self.oled_font=ImageFont.truetype('DejaVuSansMono-Oblique.ttf', 10)
         else:
@@ -33,10 +35,15 @@ if __name__ == "__main__":
      from time import sleep
 
      i2cdev = i2c(port=1, address=0x3C)
-     myfont=ImageFont.truetype('DejaVuSansMono-Oblique.ttf', 15)
-     lcd = OledSh1106(i2cdev, myfont)
-     lcd.greeting()
-     print("Module works correctly if you can see the message 'OLED-Display' on your OLED display.")
-     print("Waiting 5 sec before closing - which should clear the display.")
-     sleep(5)
 
+     oled_dev = sh1106(i2cdev)
+#     oled_dev = ssd1306(i2cdev)
+
+     myfont=ImageFont.truetype('DejaVuSansMono-Oblique.ttf', 15)
+     oled = OledLuma(oled_dev, myfont)
+     oled.greeting()
+     print("Module works correctly if you can see the message 'OLED-Display' on your OLED display.")
+     print("Waiting 5 sec before exiting - which should clear the display.")
+     sleep(5)
+     # Note, deleting the display device doesn't clear the display but exiting the program does.
+     print("That's all...")
