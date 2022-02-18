@@ -226,3 +226,9 @@
     Battery discharger measuring accumulated current and power, display
     current data on a LCD module and writing them to a CSV file.
     Stops after discharging below minimum discharge voltage.
+
+  - lcd-dimm.sh
+    Writes to the electrical relay GPIO port to dim the LCD display
+
+  - lcd-on.sh
+      Writes to the electrical relay GPIO port to turn the LCD display on again.

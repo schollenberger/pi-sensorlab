@@ -100,11 +100,11 @@
 ## Install
 
   The stuff below might already be installed on a full Raspi OS.
+  We expect that Python and Python3 is already installed properly.
   Otherwise execute:
   ```
     sudo apt-get update
     sudo apt-get upgrade
-    sudo apt-get install python-dev
     sudo apt-get install i2c-tools
 
     sudo pip install Adafruit-GPIO    #
