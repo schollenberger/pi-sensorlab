@@ -37,7 +37,7 @@ from logging.config import dictConfig
 import board
 import digitalio
 from adafruit_ina219 import ADCResolution, BusVoltageRange, INA219
-import adafruit_character_lcd.character_lcd as character_lcd
+#import adafruit_character_lcd.character_lcd as character_lcd
 
 # Log settings
 loglevel_message = 5
@@ -84,11 +84,17 @@ adc_range = 4096.0
 #lcd_columns = 20
 #lcd_rows = 4
 
-# OLED SH1106 support
-from luma.core.interface.serial import i2c
+# OLED support
 from PIL import ImageFont
-from oled_sh1106 import OledSh1106
-
+# Luma driver
+##from luma.core.interface.serial import i2c
+##from luma.oled.device import sh1106, ssd1306
+##from oled_luma import OledLuma
+# Adafruit driver
+from board import SCL, SDA
+import busio
+import adafruit_ssd1306
+from oled_adafruit import OledAdafruit
 
 # discharge low voltage = 1.0 V (NiMH) / 0.85 - 1 V (NiCd)
 # see: https://de.wikipedia.org/wiki/Tiefentladung
@@ -368,11 +374,21 @@ if __name__ == "__main__":
     relay_io.direction = digitalio.Direction.OUTPUT
 
     # OLED display
+    oled_font = ImageFont.truetype('DejaVuSansMono.ttf', 10)
+
     # Luma compatible i2c and device objects
-    i2cdev = i2c(port=1, address=0x3C)
-    oled_font = ImageFont.truetype('DejaVuSansMono-Oblique.ttf', 10)
-    lcd = OledSh1106(i2cdev, oled_font)
-    lcd.greeting()
+    ##luma_i2c = i2c(port=1, address=0x3C)
+    ##luma_dev = ssd1306(luma_i2c)
+    ## #luma_dev = sh1106(luma_i2c)
+    ## lcd = OledLuma(luma_dev, oled_font)
+
+    # Adafruit compatible i2c and device objects
+    ada_i2c = busio.I2C(SCL, SDA)
+    ada_dev = adafruit_ssd1306.SSD1306_I2C(128, 64, ada_i2c)
+    lcd = OledAdafruit(ada_dev, oled_font)
+
+    lcd.greeting("Discharge Meter")
+    sleep(5)
 
     # LCD display
 #    lcd = character_lcd.Character_LCD_Mono(plcd.rs, plcd.en, plcd.d4, plcd.d5, plcd.d6, plcd.d7,
@@ -461,9 +477,9 @@ if __name__ == "__main__":
         log_message("Keyboard interrupt - while discharging! Last voltage: {0:0.3f}V".format(Uactual))
         print_display(lcd, "Interrupted....\n{0}  {1:0.2f} mAh\nVoltage:  {2:0.3f}V".format(duration_to_hhmmss(TimeDischarge),
              TotalDischarge, Uactual))
-        sleep_time = 5
-        logger.info("Waiting 5 sec so before closing, so you can read the display")
-        sleep(5)
+#        sleep_time = 5
+#        logger.info("Waiting {0:d} sec so before closing, so you can read the display".format(sleep_time))
+#        sleep(sleep_time)
 
     finally:
     #    pass
