@@ -101,6 +101,7 @@
   Connections between the OLED Display are the same as for the 1.3 inch display.
   Except the pin swap
 
+
 ## Install
   Most of the stuff below might already be installed on a full Raspi OS.
   We pre-req that Python3 is already installed properly and configured to be
@@ -130,7 +131,6 @@
   pip install --upgrade Pillow
   ```
 
-
 ### luma.oled driver
   For SSD1306 controllers either the luma.oled library or the Adafruit library
   will work. For SH1106 you have to install the luma.oled.
@@ -147,8 +147,11 @@
   ```
 
 ### Adafruit CircuitPython libraries
-  You have to have Blinka installed (gives you CircuitPython on the Raspberry
-    Pi - see install memos.)
+  A pre-rq is that you have to have Blinka installed whicn gives you
+  CircuitPython support on the Raspberry Pi. (see install memos.)
+
+  Git Repo:
+     https://github.com/adafruit/Adafruit_CircuitPython_SSD1306
 
   See: https://learn.adafruit.com/adafruit-pioled-128x32-mini-oled-for-raspberry-pi/usage
 
@@ -156,6 +159,10 @@
   ```
     sudo pip3 install adafruit-circuitpython-ssd1306
   ```
+  This library depends on the following CircuitPython modules but they should
+  install under the cover:
+    - Bus Device: https://github.com/adafruit/Adafruit_CircuitPython_BusDevice
+    - Framebuf:   https://github.com/adafruit/Adafruit_CircuitPython_framebuf
 
   Typical imports in code using Adafruit
   ```
@@ -335,42 +342,62 @@
     width = disp.width
     height = disp.height  
     ```
-  The device has 3 methods:
+  The device has a couple of methods:
     - fill([0|1])
-      Fills the whole display either black or white pixels.
+      Fills the whole display buffer with either black or white pixels.
+
+    - pixel(x, y, color)
+      Sets a pixel on the display's buffer.
 
     - image(image)
-      Loads an image to the display.      
+      Loads an image to the display buffer.      
 
     - show()
-      Actually transfer the internal buffer to the display.
+      Actually transfer display buffer to the display.
 
-  You create a PIL image object  with the correct size and a corresponding
-  ImageDraw object:
-    ```
-    image = Image.new('1', (width, height))
-    # Get drawing object to draw on image.
-    draw = ImageDraw.Draw(image)
+    - invert(invert: bool)
+        True: sets black on white background (inverts display)  
+        False: resets to white on black background  
 
-    ```
+    - rotate(rotate: bool)
+        False: Rotates by 180 degrees
+        True:  Sets rotation back
+        Vertical mirror is effective immediately
+        For seg remap to be visible you need to call show()
 
-  Now you can create content on the display, but it will not yet been shown.
-  Example: `draw.rectangle((0, 0, width, height), outline=1, fill=0)`
+     - poweroff(), poweron()
+        Turns the diaplay off and on again.
 
-  At the end you have to call:
-    ```
-    disp.image(image)
-    disp.show()
-    ```
+  In order to display some shapes or text, you create a PIL image object with
+  the correct size and a corresponding ImageDraw object. This results in a
+  bitmap that you transfer on the display.
 
-### A bit more on the Python Imaging Library
+  Example:
+    - for creating an image a draw object:
+      ```
+      image = Image.new('1', (width, height))
+      # Get drawing object to draw on image.
+      draw = ImageDraw.Draw(image)
+      ```
+
+    - Now you can create content on the display, but it will not yet been shown.
+      Example: `draw.rectangle((0, 0, width, height), outline=1, fill=0)`
+
+    - At the end you have to call:
+      ```
+      disp.image(image)
+      disp.show()
+      ```
+
+### Python Imaging Library
   see: https://pillow.readthedocs.io/en/stable/index.html
 
   The Python Imaging Library adds image processing capabilities to your
   Python interpreter.
 
   The most important class is `Image`. Image instances can be loaded from
-  image files or created from scratch.
+  image files or can be created from scratch.
+  Example:
     ```
     from PIL import Image
 
@@ -392,14 +419,14 @@
     ```
 
   There are a number of methods to process an Image object. When processing
-  image files you may find the method `save(file, format)` pretty useful.
+  image files you store the result using method `save(file, format)`.
 
   There is a `show()` method as well but in order for this to work, you have
   to properly setup the Pillow Image-Plugin.
 
-  And there are a number of method to modify the image.
-
-  Some examples:
+  The Image class offers a number of method to modify the image, e.g. create
+  tumbnails, cut and paste regions, resize, rotate, etc.
+  Sample code:
     ```
     from PIL import Image
     # Image from file
@@ -421,8 +448,8 @@
     ```
 
   In order to draw or write on an Image object you need the module `ImageDraw`.
-  With module you may instantiate a `Draw` object which support drawing lines,
-  rectangles, arcs, etc. and writing texts in specified fonts.
+  With this module you may instantiate a `Draw` object which support drawing
+  lines, rectangles, arcs, etc. and writing texts in specified fonts.
   Example:
     ```
     import sys
@@ -450,9 +477,29 @@
     # write to stdout
     out.save("out.png", "PNG")
     ```
-  In the context of OLED displays we either instantiate the ImageDraw.Draw class
-  based on the luma.core.canvas object or, in case of the Adafruit libraries, we
-  instantiate a 1-bit Image from which we create the Draw object and later
+
+  When writing text you need to specify a font using the PIL `ImageFont` module.
+  With this module you can load bitmap fonts (.pil) and truetype fonts (.ttf).
+  Note that these fonts have to be installed on your system.
+  If you don't care about specific fonts you can load a default font.
+  Examples:
+    ```
+    from PIL import ImageFont, ImageDraw
+
+    font = ImageFont.load(arial.pil)  # bitmap font
+    font = ImageFont.truetype('DejaVuSansMono-Oblique.ttf', 14) # TrueType with size
+    font = ImageFont.load_default()
+    ```
+  For TrueType fonts you may retrieve the name and the size attributes.
+  Example:
+    ```
+      font.getmetrics()  -> (13,4)  # baseline to highest/lowest point
+      font.getname()     -> ('DejaVu Sans Mono', 'Oblique')
+    ```
+
+  In the context of OLED displays, either instantiate the ImageDraw.Draw class
+  based on the luma.core.canvas object or, in case of the Adafruit libraries,
+  instantiate a 1-bit Image from which you create the Draw object and later
   let the device display the image.
 
 ## Code
