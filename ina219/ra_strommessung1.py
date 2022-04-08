@@ -4,7 +4,8 @@ from time import sleep
 SHUNT_OHM = 0.1
 MAX_STROMSTAERKE = 0.4
 ina = INA219(SHUNT_OHM, MAX_STROMSTAERKE)
-ina.configure(ina.RANGE_16V, ina.GAIN_1_40MV)
+#ina.configure(ina.RANGE_16V, ina.GAIN_1_40MV)
+ina.configure(ina.RANGE_16V)
 
 def read_ina219():
     try:
@@ -15,14 +16,14 @@ def read_ina219():
         print('Iges   : {0:0.2f} mA'.format(ina.current()))
         print('Pges   : {0:0.2f} mW'.format(ina.power()))
         print('UShunt : {0:0.2f} mV'.format(Ushunt))
-        print
+        print()
     except DeviceRangeError as e:
         print("Stromstaerke zu hoch.")
 
 try:
     while 1:
         read_ina219()
-        sleep(5)
+        sleep(0.5)
 
 except KeyboardInterrupt:
     pass
