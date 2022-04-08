@@ -36,7 +36,7 @@
   get it to work with the I2C bus.
 
   For installing Python interpreters and making V3 default, see the
-  Raspberrry-Pi-Install readme.
+  Raspberry-Pi-Install readme.
 
   See the usage section for more details on how to program a pixel based
   display like the OLED ones as you need more than just the device driver
@@ -99,7 +99,7 @@
 
   ```
   Connections between the OLED Display are the same as for the 1.3 inch display.
-  Except the pin swap
+  Except the pin swap between VCC and GND.
 
 
 ## Install

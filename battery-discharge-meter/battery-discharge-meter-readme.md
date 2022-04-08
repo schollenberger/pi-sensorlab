@@ -40,8 +40,9 @@
 
   ```    
 
-  Relais board:
-
+  Relais board (from the sensor kit):
+  Note that AZ-Delivery sells a similar relais board but the pins are arranged
+  differently.
   ```
     +------------------+
     |  +-------------+ |
@@ -113,6 +114,27 @@
 
   ```
 
+  As an alternative to the LCD display, 128x64 pixel OLED displays with the
+  SSD1306 chip and I2C serial interface have been used as well.
+  They connected to the same I2C bus as the INA219 board.
+  !! Double check the VCC/GND pins. !! They are swapped on some displays.
+
+  OLED Display:
+  ```
+    +--------------------------+
+    |      o   o   o   o       |
+    |      1   2   3   4       |
+    |     GND VCC SCL SDA      |
+    |                          |
+    |  +---------------------+ |
+    |  |                     | |
+    |  |                     | |
+    |  |                     | |
+    |  +---------------------+ |
+    +--------------------------+
+
+  ```
+
   AD converter MCP3008:
 
   ```
@@ -165,7 +187,7 @@
       |  |          +++     |   |     |       |             |
       |  |                 |    |     +-------+-- GND       |
       |  +-----------------+----+     |       +-------------+
-      |           +--------o          |
+      |           +--------0          |
       |           |                   |
       |          +++                  |
       | +        | |   Discharge      |
@@ -219,6 +241,13 @@
   - Check I2C bus on PI
        sudo i2cdetect -y 1
 
+  - Check that the relay is functioning
+    The command:  
+    `gpio write 0 1; sleep 1; gpio write 0 0`  
+    This should turn the relay on and off again.
+    You may need to execute:  
+    `gpio mode 0 out `  
+    To initialize the GPIO port.
 
 ## Code
 
@@ -227,8 +256,54 @@
     current data on a LCD module and writing them to a CSV file.
     Stops after discharging below minimum discharge voltage.
 
-  - lcd-dimm.sh
+  - `lcd-dimm.sh`
     Writes to the electrical relay GPIO port to dim the LCD display
 
-  - lcd-on.sh
-      Writes to the electrical relay GPIO port to turn the LCD display on again.
+  - `lcd-on.sh`
+    Writes to the electrical relay GPIO port to turn the LCD display on again.
+
+  - `battery_test.oled.py`
+    Measures the battery's initial voltage and then applies the load, and
+    measures voltage and current under load for a short period. After that
+    it lets the battery recover and measures the voltage again.
+
+## Results
+
+  Some typical result values of the battery test for AA Alkaline batteries:
+    ```
+      Load current about 220 - 330 mA, depending on load voltage.
+      Overall load resistor 4.5 - 4.9 Ohms (including wires and relay resistance)
+
+      Status  | initial     |  load
+      --------+-------------+---------------
+      fresh   | 1.55-1.67 V | 1.45 - 1.55 V
+              |             |
+      medium  |             | 1.25 - 1.44 V
+              |             |
+      poor    |             | 0.90 - 1.24
+              | 1.27 V      | 1.16 V
+              |             |
+      replace |             | < 0.8 V
+    ```
+
+  Measurement comparison INA219 vs. oscilloscope:
+  CH1 10x 1V/div - INA Vin+ / Battery + directly
+  CH2 10x 1V/div - INA Vin-
+  Math  - CH1 - CH2
+
+  Measurements recorded via single sweep 100ms/div, Trigger via CH4 connected
+  to internal oscillator. Measurement
+    ```
+    Relative fresh Battery AA size:
+
+                         |  Idle    |  Load    |
+    ---------------------+----------+----------+
+    Scope @ battery      |  1.57 V  |  1.43 V  |
+    Scope @ INA Vin+     |  1.57 V  |  1.34 V  |
+    Scope @ INA Vin-     |  1.55 V  |  1.24 V  |
+    Scope Vin+ - Vin-    |    10 mV |   96  mV |
+    INA Ubat (Vin + Ush) |  1.50 V  |  1.30 V  |
+    INA Ushunt           | -0.01 mV |  26.2 mV |
+    INA Iges             | -0.10 mA |   262 mA |
+    INA Pges             |  0.00 mW |   330 mW |
+    ```
