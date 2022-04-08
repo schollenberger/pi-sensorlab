@@ -113,7 +113,7 @@
         ```
 
   Docs for Adafruit ina219 library:
-    -
+    - https://docs.circuitpython.org/projects/ina219/en/latest/api.html
     - In a Nutshell
       ```
       # imports
