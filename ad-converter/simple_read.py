@@ -8,10 +8,9 @@ chan0 = 0  # auszulesender channel
 chan1 = 1
 chan2 = 2
 
-#uref = 3.3
-uref = 3.331
+uref = 3.3
 
-ad_range = 4096.0
+ad_range = 4095.0
 
 val0 = adc.read(chan0)
 val1 = adc.read(chan1)
@@ -29,8 +28,8 @@ try:
         val1 = adc.read(chan1)
         val2 = adc.read(chan2)
 
-        print("Anliegende Spannung: %.4f / %.4f / %.4f Volt" % (
-           (val0 * uref / 4096.0), (val1 * uref / 4096.0),  (val2 * uref / 4096.0)))
+        print("Anliegende Spannung: %.4f / %.4f / %.4f Volt - Raw values:  %5d / %5d / %5d " % (
+           (val0 * uref / ad_range), (val1 * uref / ad_range),  (val2 * uref / ad_range), val0, val1, val2))
         time.sleep(1)
 
 except KeyboardInterrupt:
